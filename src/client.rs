@@ -6,7 +6,7 @@ pub mod ex_gate {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
-    let mut client = GreeterClient::connect("http://localhost:3000")
+    let mut client = GreeterClient::connect("http://[::1]:50051")
         .await
         .unwrap();
     let request = tonic::Request::new(BalancesRequest {

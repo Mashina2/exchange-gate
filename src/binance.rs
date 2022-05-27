@@ -12,7 +12,6 @@ use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 lazy_static! {
-  /// This is an example for using doc comment attributes
   static ref BINANCE_CLIENT: Client = {
     let api_key = env::var("BINANCE_KEY").expect("BINANCE_KEY is not set in .env file");
     let secret_key = env::var("BINANCE_SECRET").expect("BINANCE_SECRET is not set in .env file");

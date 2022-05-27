@@ -15,6 +15,8 @@ pub enum GateErr {
     SystemTimeError(#[from] std::time::SystemTimeError),
     #[error(transparent)]
     SerdeJsonError(#[from] serde_json::Error),
+    #[error(transparent)]
+    TonicError(#[from] tonic::transport::Error),
 
     #[error("Binance Server Error")]
     BinanceServerErr,
