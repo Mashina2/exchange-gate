@@ -21,7 +21,7 @@ impl Greeter for ExGreeter {
                     .await
                     .map_err(|e| Status::unknown(e.to_string()))?;
             }
-            _ => {return Err(Status::invalid_argument("param exchange_name is wrong"))}
+            _ => return Err(Status::invalid_argument("param exchange_name is wrong")),
         }
 
         Ok(Response::new(reply))
@@ -39,7 +39,7 @@ impl Greeter for ExGreeter {
                     .await
                     .map_err(|e| Status::unknown(e.to_string()))?;
             }
-            _ => {return Err(Status::invalid_argument("param exchange_name is wrong"))}
+            _ => return Err(Status::invalid_argument("param exchange_name is wrong")),
         }
         Ok(Response::new(reply))
     }

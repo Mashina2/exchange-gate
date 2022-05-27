@@ -1,5 +1,5 @@
 use crate::error::{BinanceContentError, GateErr};
-use crate::ex_grpc::ex_gate::{Balance, BalancesReply, PricesReply, Price};
+use crate::ex_grpc::ex_gate::{Balance, BalancesReply, Price, PricesReply};
 use hex::encode as hex_encode;
 use hmac::{Hmac, Mac};
 use lazy_static::lazy_static;
@@ -95,14 +95,14 @@ impl Client {
     }
 
     pub async fn get(&self, endpoint: &str, request: &str) -> Result<String, GateErr> {
-      let mut url: String = format!("{}{}", self.host, endpoint);
-      if !request.is_empty() {
-          url.push_str(format!("?{}", request).as_str());
-      }
+        let mut url: String = format!("{}{}", self.host, endpoint);
+        if !request.is_empty() {
+            url.push_str(format!("?{}", request).as_str());
+        }
 
-      let response = reqwest::get(url.as_str()).await?;
+        let response = reqwest::get(url.as_str()).await?;
 
-      self.handler(response).await
+        self.handler(response).await
     }
 }
 
@@ -138,14 +138,14 @@ pub fn build_signed_request(
 }
 
 pub fn build_request(parameters: &BTreeMap<String, String>) -> String {
-  let mut request = String::new();
-  for (key, value) in parameters {
-      let param = format!("{}={}&", key, value);
-      request.push_str(param.as_ref());
-  }
-  request.pop(); // remove last &
+    let mut request = String::new();
+    for (key, value) in parameters {
+        let param = format!("{}={}&", key, value);
+        request.push_str(param.as_ref());
+    }
+    request.pop(); // remove last &
 
-  request
+    request
 }
 
 pub async fn get_account() -> Result<BalancesReply, GateErr> {
@@ -172,25 +172,31 @@ pub async fn get_account() -> Result<BalancesReply, GateErr> {
 }
 
 pub async fn get_prices(symbols: &Vec<String>) -> Result<PricesReply, GateErr> {
-  let mut parameters: BTreeMap<String, String> = BTreeMap::new();
+    let mut parameters: BTreeMap<String, String> = BTreeMap::new();
 
-  if !symbols.is_empty() {
-    let mut symbols = format!("{:?}", symbols);
-    symbols = urlencoding::encode(&symbols).into_owned();
-    symbols = symbols.replace("%2C%20", ",");
-    parameters.insert("symbols".into(), symbols);
-  // } else {
-  //   parameters.insert("symbols".into(), "".to_string());
-  }
-  let request = build_request(&parameters);
+    if !symbols.is_empty() {
+        let mut symbols = format!("{:?}", symbols);
+        symbols = urlencoding::encode(&symbols).into_owned();
+        symbols = symbols.replace("%2C%20", ",");
+        parameters.insert("symbols".into(), symbols);
+        // } else {
+        //   parameters.insert("symbols".into(), "".to_string());
+    }
+    let request = build_request(&parameters);
 
-  let data = BINANCE_CLIENT.get("/api/v3/ticker/price", &request).await?;
-  let prices: Value = serde_json::from_str(data.as_str())?;
-  let prices = prices.as_array().ok_or(GateErr::CustomErr("binance response is not as expected".to_string()))?;
-  let prices: PricesReply = PricesReply { prices: prices.into_iter()
-    .map(|token| Price {
-      symbol: token["symbol"].to_string(),
-      price: token["price"].to_string(),
-    }).collect()};
-  Ok(prices)
+    let data = BINANCE_CLIENT.get("/api/v3/ticker/price", &request).await?;
+    let prices: Value = serde_json::from_str(data.as_str())?;
+    let prices = prices.as_array().ok_or(GateErr::CustomErr(
+        "binance response is not as expected".to_string(),
+    ))?;
+    let prices: PricesReply = PricesReply {
+        prices: prices
+            .into_iter()
+            .map(|token| Price {
+                symbol: token["symbol"].to_string(),
+                price: token["price"].to_string(),
+            })
+            .collect(),
+    };
+    Ok(prices)
 }

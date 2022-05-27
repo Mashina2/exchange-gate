@@ -18,7 +18,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
 
     let request = tonic::Request::new(PriceRequest {
         exchange_name: "Binance".into(),
-        symbols: vec!["ETHBTC".to_string(), "LTCBTC".to_string(), "BTCUSDT".to_string()],
+        symbols: vec![
+            "ETHBTC".to_string(),
+            "LTCBTC".to_string(),
+            "BTCUSDT".to_string(),
+        ],
     });
     let response = client.get_prices(request).await?;
     println!("RESPONSE={:?}", response);
