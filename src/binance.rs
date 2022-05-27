@@ -1,5 +1,5 @@
 use crate::error::{BinanceContentError, GateErr};
-use crate::ex_grpc::ex_gate::{Balance, BalancesReply};
+use crate::ex_grpc::ex_gate::{Balance, BalancesReply, PricesReply, Price};
 use hex::encode as hex_encode;
 use hmac::{Hmac, Mac};
 use lazy_static::lazy_static;
@@ -12,12 +12,13 @@ use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 lazy_static! {
-  static ref BINANCE_CLIENT: Client = {
-    let api_key = env::var("BINANCE_KEY").expect("BINANCE_KEY is not set in .env file");
-    let secret_key = env::var("BINANCE_SECRET").expect("BINANCE_SECRET is not set in .env file");
-    let host = env::var("BINANCE_HOST").expect("BINANCE_HOST is not set in .env file");
-    Client::new(api_key, secret_key, host)
-  };
+    static ref BINANCE_CLIENT: Client = {
+        let api_key = env::var("BINANCE_KEY").expect("BINANCE_KEY is not set in .env file");
+        let secret_key =
+            env::var("BINANCE_SECRET").expect("BINANCE_SECRET is not set in .env file");
+        let host = env::var("BINANCE_HOST").expect("BINANCE_HOST is not set in .env file");
+        Client::new(api_key, secret_key, host)
+    };
 }
 
 #[derive(Clone)]
@@ -92,6 +93,17 @@ impl Client {
 
         self.handler(response).await
     }
+
+    pub async fn get(&self, endpoint: &str, request: &str) -> Result<String, GateErr> {
+      let mut url: String = format!("{}{}", self.host, endpoint);
+      if !request.is_empty() {
+          url.push_str(format!("?{}", request).as_str());
+      }
+
+      let response = reqwest::get(url.as_str()).await?;
+
+      self.handler(response).await
+    }
 }
 
 fn get_timestamp() -> Result<u64, GateErr> {
@@ -125,6 +137,17 @@ pub fn build_signed_request(
     }
 }
 
+pub fn build_request(parameters: &BTreeMap<String, String>) -> String {
+  let mut request = String::new();
+  for (key, value) in parameters {
+      let param = format!("{}={}&", key, value);
+      request.push_str(param.as_ref());
+  }
+  request.pop(); // remove last &
+
+  request
+}
+
 pub async fn get_account() -> Result<BalancesReply, GateErr> {
     let parameters: BTreeMap<String, String> = BTreeMap::new();
 
@@ -146,4 +169,28 @@ pub async fn get_account() -> Result<BalancesReply, GateErr> {
         .collect();
     let balances: BalancesReply = BalancesReply { balances: balances };
     Ok(balances)
+}
+
+pub async fn get_prices(symbols: &Vec<String>) -> Result<PricesReply, GateErr> {
+  let mut parameters: BTreeMap<String, String> = BTreeMap::new();
+
+  if !symbols.is_empty() {
+    let mut symbols = format!("{:?}", symbols);
+    symbols = urlencoding::encode(&symbols).into_owned();
+    symbols = symbols.replace("%2C%20", ",");
+    parameters.insert("symbols".into(), symbols);
+  // } else {
+  //   parameters.insert("symbols".into(), "".to_string());
+  }
+  let request = build_request(&parameters);
+
+  let data = BINANCE_CLIENT.get("/api/v3/ticker/price", &request).await?;
+  let prices: Value = serde_json::from_str(data.as_str())?;
+  let prices = prices.as_array().ok_or(GateErr::CustomErr("binance response is not as expected".to_string()))?;
+  let prices: PricesReply = PricesReply { prices: prices.into_iter()
+    .map(|token| Price {
+      symbol: token["symbol"].to_string(),
+      price: token["price"].to_string(),
+    }).collect()};
+  Ok(prices)
 }

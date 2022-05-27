@@ -16,8 +16,22 @@ message BalancesReply {
   repeated Balance balances = 1;
 }
 
+message PriceRequest {
+  string exchange_name = 1;
+  repeated string symbols = 2;
+}
+
+message Price {
+  string symbol = 1;
+  string price = 2;
+}
+message PricesReply {
+  repeated Price prices = 1;
+}
+
 service Greeter {
   rpc GetBalances (BalancesRequest) returns (BalancesReply) {}
+  rpc GetPrices (PriceRequest) returns (PricesReply) {}
 }
 
 // "balances": [
