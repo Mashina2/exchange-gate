@@ -1,6 +1,6 @@
 use ex_gate::{greeter_client::GreeterClient, BalancesRequest};
 
-use crate::ex_gate::PriceRequest;
+use crate::ex_gate::{OrderRequest, PriceRequest};
 
 pub mod ex_gate {
     tonic::include_proto!("ex_gate");
@@ -25,6 +25,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
         ],
     });
     let response = client.get_prices(request).await?;
+    println!("RESPONSE={:?}", response);
+
+    let request = tonic::Request::new(OrderRequest {
+        exchange_name: "Binance".into(),
+        symbol: "BNBUSDT".into(),
+        client_order_id: "1".into(),
+    });
+    let response = client.get_order(request).await?;
     println!("RESPONSE={:?}", response);
 
     Ok(())

@@ -1,5 +1,5 @@
 use crate::error::{BinanceContentError, GateErr};
-use crate::ex_grpc::ex_gate::{Balance, BalancesReply, Price, PricesReply};
+use crate::ex_grpc::ex_gate::{Balance, BalancesReply, OrderReply, Price, PricesReply};
 use hex::encode as hex_encode;
 use hmac::{Hmac, Mac};
 use lazy_static::lazy_static;
@@ -199,4 +199,26 @@ pub async fn get_prices(symbols: &Vec<String>) -> Result<PricesReply, GateErr> {
             .collect(),
     };
     Ok(prices)
+}
+
+pub async fn get_order(symbol: &str, order_id: &str) -> Result<OrderReply, GateErr> {
+    let mut parameters: BTreeMap<String, String> = BTreeMap::new();
+    parameters.insert("symbol".into(), symbol.into());
+    parameters.insert("origClientOrderId".into(), order_id.to_string());
+
+    let request = build_signed_request(parameters, 5000)?;
+    let data = BINANCE_CLIENT.get_signed("/api/v3/order", &request).await?;
+    let order: Value = serde_json::from_str(data.as_str())?;
+    let order = OrderReply {
+        price: order["price"].to_string(),
+        original_quantity: order["origQty"].to_string(),
+        executed_quantity: order["executedQty"].to_string(),
+        order_status: order["status"].to_string(),
+        time_in_force: order["timeInForce"].to_string(),
+        order_type: order["type"].to_string(),
+        side: order["side"].to_string(),
+        created_timestamp: order["time"].as_u64().unwrap_or(0_u64),
+        updated_timestamp: order["updateTime"].as_u64().unwrap_or(0_u64),
+    };
+    Ok(order)
 }

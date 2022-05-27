@@ -29,10 +29,51 @@ message PricesReply {
   repeated Price prices = 1;
 }
 
+message OrderRequest {
+  string exchange_name = 1;
+  string symbol = 2;
+  string client_order_id = 3;
+}
+
+message OrderReply {
+  string price = 1;
+  string original_quantity = 2;
+  string executed_quantity = 3;
+  string order_status = 4;
+  string time_in_force = 5;
+  string order_type = 6;
+  string side = 7;
+  uint64 created_timestamp = 8;
+  uint64 updated_timestamp = 9;
+}
+
 service Greeter {
   rpc GetBalances (BalancesRequest) returns (BalancesReply) {}
   rpc GetPrices (PriceRequest) returns (PricesReply) {}
+  rpc GetOrder (OrderRequest) returns (OrderReply) {}
 }
+
+// {
+//   "symbol": "LTCBTC", // 交易对
+//   "orderId": 1, // 系统的订单ID
+//   "orderListId": -1, // OCO订单的ID，不然就是-1
+//   "clientOrderId": "myOrder1", // 客户自己设置的ID
+//   "price": "0.1", // 订单价格
+//   "origQty": "1.0", // 用户设置的原始订单数量
+//   "executedQty": "0.0", // 交易的订单数量
+//   "cummulativeQuoteQty": "0.0", // 累计交易的金额
+//   "status": "NEW", // 订单状态
+//   "timeInForce": "GTC", // 订单的时效方式
+//   "type": "LIMIT", // 订单类型， 比如市价单，现价单等
+//   "side": "BUY", // 订单方向，买还是卖
+//   "stopPrice": "0.0", // 止损价格
+//   "icebergQty": "0.0", // 冰山数量
+//   "time": 1499827319559, // 订单时间
+//   "updateTime": 1499827319559, // 最后更新时间
+//   "isWorking": true, // 订单是否出现在orderbook中
+//   "origQuoteOrderQty": "0.000000" // 原始的交易金额
+// }
+
 
 // "balances": [
 //     {
@@ -46,3 +87,28 @@ service Greeter {
 //       "locked": "0.00000000"
 //     }
 //   ]
+
+// 订单相关
+
+// status
+// NEW	订单被交易引擎接受
+// PARTIALLY_FILLED	部分订单被成交
+// FILLED	订单完全成交
+// CANCELED	用户撤销了订单
+// PENDING_CANCEL	撤销中(目前并未使用)
+// REJECTED	订单没有被交易引擎接受，也没被处理
+// EXPIRED	订单被交易引擎取消
+
+// timeInForce 订单时效方式
+// GTC	成交为止 订单会一直有效，直到被成交或者取消。
+// IOC	无法立即成交的部分就撤销 订单在失效前会尽量多的成交。
+// FOK	无法全部立即成交就撤销 如果无法全部成交，订单会失效。
+
+// 订单类型 (orderTypes, type):
+// LIMIT 限价单
+// MARKET 市价单
+// STOP_LOSS 止损单
+// STOP_LOSS_LIMIT 限价止损单
+// TAKE_PROFIT 止盈单
+// TAKE_PROFIT_LIMIT 限价止盈单
+// LIMIT_MAKER 限价只挂单
