@@ -29,28 +29,60 @@ message PricesReply {
   repeated Price prices = 1;
 }
 
-message OrderRequest {
+message GetOrderRequest {
   string exchange_name = 1;
   string symbol = 2;
   string client_order_id = 3;
 }
 
-message OrderReply {
+message OrderItem {
   string price = 1;
-  string original_quantity = 2;
-  string executed_quantity = 3;
-  string order_status = 4;
-  string time_in_force = 5;
-  string order_type = 6;
-  string side = 7;
-  uint64 created_timestamp = 8;
-  uint64 updated_timestamp = 9;
+  string quantity = 2;
+  string commission = 3;
+  string commission_asset = 4;
+  string trade_id = 5;
 }
+
+message OrderReply {
+  string symbol = 1;
+  string client_order_id = 2;
+  string price = 3;
+  string original_quantity = 4;
+  string executed_quantity = 5;
+  string order_status = 6;
+  string time_in_force = 7;
+  string order_type = 8;
+  string side = 9;
+  uint64 created_timestamp = 10;
+  uint64 updated_timestamp = 11;
+  repeated OrderItem items = 12;
+}
+
+message CreateOrderRequest {
+  string exchange_name = 1;
+  string symbol = 2;
+  string quantity = 3;
+  string side = 4;
+  string client_order_id = 5;
+}
+
+// "symbol": "BNBUSDT",
+// "clientOrderId": "1",
+// "price": "0.00000000",
+// "origQty": "1.00000000",
+// "executedQty": "1.00000000",
+// "status": "FILLED",
+// "timeInForce": "GTC",
+// "type": "MARKET",
+// "side": "SELL",
+// "transactTime": 1653641432759,
+
 
 service Greeter {
   rpc GetBalances (BalancesRequest) returns (BalancesReply) {}
   rpc GetPrices (PriceRequest) returns (PricesReply) {}
-  rpc GetOrder (OrderRequest) returns (OrderReply) {}
+  rpc GetOrder (GetOrderRequest) returns (OrderReply) {}
+  rpc CreateMarketOrder (CreateOrderRequest) returns (OrderReply) {}
 }
 
 // {

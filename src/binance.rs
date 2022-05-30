@@ -1,5 +1,5 @@
 use crate::error::{BinanceContentError, GateErr};
-use crate::ex_grpc::ex_gate::{BalancesReply, OrderReply, Price, PricesReply};
+use crate::ex_grpc::ex_gate::{BalancesReply, OrderReply, Price, PricesReply, CreateOrderRequest, OrderItem};
 use hex::encode as hex_encode;
 use hmac::{Hmac, Mac};
 use lazy_static::lazy_static;
@@ -104,6 +104,18 @@ impl Client {
 
         self.handler(response).await
     }
+
+    pub async fn post_signed(&self, endpoint: &str, request: &str) -> Result<String, GateErr> {
+        let url = self.sign_request(endpoint, request);
+        let client = reqwest::Client::new();
+        let response = client
+            .post(url.as_str())
+            .headers(self.build_headers(true)?)
+            .send()
+            .await?;
+
+        self.handler(response).await
+    }
 }
 
 fn get_timestamp() -> Result<u64, GateErr> {
@@ -198,6 +210,8 @@ pub async fn get_order(symbol: &str, order_id: &str) -> Result<OrderReply, GateE
     let data = BINANCE_CLIENT.get_signed("/api/v3/order", &request).await?;
     let order: Value = serde_json::from_str(data.as_str())?;
     let order = OrderReply {
+        symbol: order["symbol"].to_string(),
+        client_order_id: order["clientOrderId"].to_string(),
         price: order["price"].to_string(),
         original_quantity: order["origQty"].to_string(),
         executed_quantity: order["executedQty"].to_string(),
@@ -207,6 +221,48 @@ pub async fn get_order(symbol: &str, order_id: &str) -> Result<OrderReply, GateE
         side: order["side"].to_string(),
         created_timestamp: order["time"].as_u64().unwrap_or(0_u64),
         updated_timestamp: order["updateTime"].as_u64().unwrap_or(0_u64),
+        items: vec![],
     };
     Ok(order)
 }
+
+pub async fn create_market_order(params: &CreateOrderRequest) -> Result<OrderReply, GateErr>
+    {
+        let mut order_params: BTreeMap<String, String> = BTreeMap::new();
+
+        order_params.insert("symbol".into(), params.symbol.clone());
+        order_params.insert("side".into(), params.side.clone());
+        order_params.insert("type".into(), "MARKET".into());
+        order_params.insert("quantity".into(), params.quantity.clone());
+        order_params.insert("newClientOrderId".into(), params.client_order_id.clone());
+
+        let request = build_signed_request(order_params, 5000)?;
+        let data = BINANCE_CLIENT.post_signed("/api/v3/order", &request).await?;
+        let order: Value = serde_json::from_str(data.as_str())?;
+        let mut reply = OrderReply {
+            symbol: order["symbol"].to_string(),
+            client_order_id: order["clientOrderId"].to_string(),
+            price: order["price"].to_string(),
+            original_quantity: order["origQty"].to_string(),
+            executed_quantity: order["executedQty"].to_string(),
+            order_status: order["status"].to_string(),
+            time_in_force: order["timeInForce"].to_string(),
+            order_type: order["type"].to_string(),
+            side: order["side"].to_string(),
+            created_timestamp: order["transactTime"].as_u64().unwrap_or(0_u64),
+            updated_timestamp: order["transactTime"].as_u64().unwrap_or(0_u64),
+            items: vec![],
+        };
+        let fills = order["fills"].as_array().ok_or(GateErr::CustomErr(
+            "binance response has no fills field".to_string(),
+        ))?;
+        reply.items = fills.into_iter().map(|item| OrderItem {
+            price: item["price"].to_string(),
+            quantity: item["qty"].to_string(),
+            commission: item["commission"].to_string(),
+            commission_asset: item["commissionAsset"].to_string(),
+            trade_id: item["tradeId"].to_string(),
+        }).collect();
+        Ok(reply)
+    }
+
