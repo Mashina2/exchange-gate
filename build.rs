@@ -1,4 +1,8 @@
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tonic_build::compile_protos("proto/ex_gate.proto")?;
+    tonic_build::configure()
+        .build_server(true)
+        .type_attribute(".", "#[derive(serde::Deserialize)]")
+        .compile(&["proto/ex_gate.proto"], &["proto"])?;
     Ok(())
 }

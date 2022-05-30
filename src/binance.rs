@@ -1,5 +1,5 @@
 use crate::error::{BinanceContentError, GateErr};
-use crate::ex_grpc::ex_gate::{Balance, BalancesReply, OrderReply, Price, PricesReply};
+use crate::ex_grpc::ex_gate::{BalancesReply, OrderReply, Price, PricesReply};
 use hex::encode as hex_encode;
 use hmac::{Hmac, Mac};
 use lazy_static::lazy_static;
@@ -155,19 +155,7 @@ pub async fn get_account() -> Result<BalancesReply, GateErr> {
     let data = BINANCE_CLIENT
         .get_signed("/api/v3/account", &request)
         .await?;
-    let account_info: Value = serde_json::from_str(data.as_str())?;
-    let balances = account_info["balances"]
-        .as_array()
-        .ok_or(GateErr::CustomErr("binance no balance field".to_string()))?;
-    let balances = balances
-        .into_iter()
-        .map(|token| Balance {
-            asset: token["asset"].to_string(),
-            free: token["free"].to_string(),
-            locked: token["locked"].to_string(),
-        })
-        .collect();
-    let balances: BalancesReply = BalancesReply { balances: balances };
+    let balances: BalancesReply = serde_json::from_str(data.as_str())?;
     Ok(balances)
 }
 
