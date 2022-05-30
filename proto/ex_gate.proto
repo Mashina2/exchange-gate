@@ -66,18 +66,6 @@ message CreateOrderRequest {
   string client_order_id = 5;
 }
 
-// "symbol": "BNBUSDT",
-// "clientOrderId": "1",
-// "price": "0.00000000",
-// "origQty": "1.00000000",
-// "executedQty": "1.00000000",
-// "status": "FILLED",
-// "timeInForce": "GTC",
-// "type": "MARKET",
-// "side": "SELL",
-// "transactTime": 1653641432759,
-
-
 service Greeter {
   rpc GetBalances (BalancesRequest) returns (BalancesReply) {}
   rpc GetPrices (PriceRequest) returns (PricesReply) {}
